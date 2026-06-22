@@ -138,6 +138,7 @@
   .dot-camioneta { background: var(--camioneta-color); }
   .dot-interior { background: var(--interior-color); }
   .dot-total { background: var(--yellow); }
+  .dot-blue  { background: var(--camion-color); }
   .dot-retiro { background: var(--retiro-color); }
   .dot-interplanta { background: var(--interplanta-color); }
 
@@ -669,7 +670,7 @@ function applyFilters() {
 
     <div class="section">
       <div class="section-title">
-        <span class="dot dot-total"></span>Evolución Semanal ${year} — Todos los Costos
+        <span class="dot dot-blue"></span>Evolución Semanal ${year} — Todos los Costos
         <span class="section-subtitle">Año completo</span>
       </div>
       <div class="chart-wrap tall"><canvas id="chart-total-weekly"></canvas></div>
@@ -677,7 +678,7 @@ function applyFilters() {
 
     <div class="section">
       <div class="section-title">
-        <span class="dot dot-total"></span>Evolución Diaria — Todos los Costos
+        <span class="dot dot-blue"></span>Evolución Diaria — Todos los Costos
         <span class="section-subtitle">${periodLabel}</span>
       </div>
       <div class="chart-wrap tall"><canvas id="chart-total-daily"></canvas></div>
@@ -881,8 +882,9 @@ function switchTab(name, el) {
   document.getElementById('pane-'+name).classList.add('active');
 }
 
-// ── INIT — load immediately on open ──────────────────────────────────────────
+// ── INIT — load immediately on open ────────────────────────────────────────
 loadData();
 </script>
 </body>
 </html>
+html>
