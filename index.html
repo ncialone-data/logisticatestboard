@@ -495,14 +495,29 @@ function destinoTable(rows) {
   e.forEach(([d,v])=>{ html+=`<tr><td>${d}</td><td class="num">${fmtFull(v.cost)}</td><td class="num">${v.count}</td><td class="num">${v.count?fmtFull(v.cost/v.count):'-'}</td></tr>`; });
   return html+'</table></div>';
 }
+function tipoLegend(rows) {
+  const dotClass={retiro:'dot-retiro',interplanta:'dot-interplanta',directo:'',normal:'dot-camion'};
+  const dotStyle={directo:'background:var(--directo-color)'};
+  const lbl={retiro:'Retiros',interplanta:'Interplanta',directo:'Directos',normal:'Reparto Normal'};
+  const present=[...new Set(rows.map(r=>r.tipo))].filter(t=>lbl[t]);
+  // Order: normal first, then retiro, interplanta, directo
+  const order=['normal','retiro','interplanta','directo'];
+  const sorted=order.filter(t=>present.includes(t));
+  const chips=sorted.map(t=>{
+    const dc=dotClass[t]; const ds=dotStyle[t]||'';
+    return `<div class="tipo-chip"><span class="dot ${dc}" ${ds?`style="${ds}"`:''}></span>${lbl[t]}</div>`;
+  }).join('');
+  return `<div class="tipo-legend">${chips}</div>`;
+}
 function tipoBreakdownTable(rows) {
   const map={retiro:{cost:0,count:0},interplanta:{cost:0,count:0},directo:{cost:0,count:0},normal:{cost:0,count:0}};
   rows.forEach(r=>{ if(map[r.tipo]){map[r.tipo].cost+=r.cost;map[r.tipo].count++;} });
   const total=Object.values(map).reduce((s,v)=>s+v.cost,0);
   const lbl={retiro:'🔄 Retiros',interplanta:'🏭 Interplanta',directo:'➡️ Directos',normal:'📦 Reparto Normal'};
+  // Sort by viajes DESC, skip empty
+  const sorted=Object.entries(map).filter(([,v])=>v.count>0).sort((a,b)=>b[1].count-a[1].count);
   let html=`<div class="tbl-wrap"><table><tr><th>Tipo</th><th class="num">Costo</th><th class="num">Viajes</th><th class="num">%</th></tr>`;
-  ['retiro','interplanta','directo','normal'].forEach(t=>{
-    const v=map[t]; if(!v.count) return;
+  sorted.forEach(([t,v])=>{
     html+=`<tr><td>${lbl[t]}</td><td class="num">${fmtFull(v.cost)}</td><td class="num">${v.count}</td><td class="num">${total?(v.cost/total*100).toFixed(1):0}%</td></tr>`;
   });
   return html+`<tr style="font-weight:600;border-top:1px solid var(--border)"><td>TOTAL</td><td class="num">${fmtFull(total)}</td><td class="num">${rows.length}</td><td class="num">100%</td></tr></table></div>`;
@@ -646,12 +661,7 @@ function applyFilters() {
 
     <div class="section">
       <div class="section-title"><span class="dot dot-retiro"></span>Desglose por Tipo de Operación — ${periodLabel}</div>
-      <div class="tipo-legend">
-        <div class="tipo-chip"><span class="dot dot-retiro"></span>Retiros</div>
-        <div class="tipo-chip"><span class="dot dot-interplanta"></span>Interplanta</div>
-        <div class="tipo-chip"><span class="dot" style="background:var(--directo-color)"></span>Directos</div>
-        <div class="tipo-chip"><span class="dot dot-camion"></span>Reparto Normal</div>
-      </div>
+      ${tipoLegend(localFilt)}
       ${tipoBreakdownTable(localFilt)}
     </div>
 
@@ -876,15 +886,14 @@ function applyFilters() {
 
 // ── TAB SWITCHER ──────────────────────────────────────────────────────────────
 function switchTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('pane-'+name).classList.add('active');
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("pane-"+name).classList.add("active");
 }
 
-// ── INIT — load immediately on open ────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────────────
 loadData();
 </script>
 </body>
 </html>
-html>
