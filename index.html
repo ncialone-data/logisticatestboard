@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Costos Logísticos · Lustramax</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..60,700;12..60,800&family=Outfit:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  /* ── THEME ──────────────────────────────────────────────────────────────── */
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e334d;
+    --text: #e2e8f0;
+    --muted: #8892b0;
+    --accent: #4f8ef7;
+    --green: #22c55e;
+    --yellow: #fbbf24;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --camion-color: #4f8ef7;
+    --camioneta-color: #22c55e;
+    --interior-color: #a855f7;
+    --retiro-color: #f59e0b;
+    --interplanta-color: #ec4899;
+    --directo-color: #06b6d4;
+    /* Filter bar (light) */
+    --fb-bg: #ffffff;
+    --fb-line: #e2e6ed;
+    --fb-seg: #f0f2f6;
+    --fb-tx: #111827;
+    --fb-mut: #6b7280;
+    --fb-mut2: #9ca3af;
+    --fb-acc: #2563eb;
+    --fb-shadow: 0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased;
+    padding: clamp(12px, 2.2vw, 32px); }
+
+  /* ── HEADER ─────────────────────────────────────────────────────────────── */
+  .header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+  .brand h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800; font-size: clamp(26px, 4vw, 48px);
+    line-height: .95; letter-spacing: -.03em;
+  }
+  .brand h1 span { color: var(--accent); }
+  .brand .sub { font-size: 13px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 9px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 10px rgba(34,197,94,.6); animation: pulse-dot 2.2s infinite; }
+  @keyframes pulse-dot { 50% { opacity: .35; } }
+  @keyframes pulse-dot { 50% { opacity: .45; } }
+
+  /* ── FILTER BAR (light) ─────────────────────────────────────────────────── */
+  .cutbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--fb-bg); border-bottom: 1px solid var(--fb-line);
+    padding: 10px 28px; box-shadow: var(--fb-shadow);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .cut-lbl {
+    font-size: 11px; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fb-mut2); white-space: nowrap; font-weight: 500;
+  }
+  .seg {
+    display: inline-flex; background: var(--fb-seg); border: 1px solid var(--fb-line);
+    border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap;
+  }
+  .seg button {
+    font-family: 'Outfit', sans-serif; font-size: 12.5px; color: var(--fb-mut);
+    background: none; border: none; padding: 6px 13px; border-radius: 7px;
+    cursor: pointer; transition: .15s; white-space: nowrap; font-weight: 500;
+  }
+  .seg button:hover { color: var(--fb-tx); background: rgba(0,0,0,.04); }
+  .seg button.on {
+    background: var(--fb-acc); color: #fff; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(37,99,235,.28);
+  }
+  .refresh-btn {
+    font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 600;
+    padding: 7px 16px; border-radius: 9px; border: none;
+    background: var(--fb-acc); color: #fff; cursor: pointer; transition: .2s;
+    white-space: nowrap; box-shadow: 0 2px 8px rgba(37,99,235,.28);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .refresh-btn:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,.38); }
+  .refresh-btn:disabled { background: var(--fb-mut2); cursor: not-allowed; box-shadow: none; }
+  .refresh-status { font-size: 11px; color: var(--fb-mut); font-style: italic; }
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── MAIN ───────────────────────────────────────────────────────────────── */
+  .main { padding: 20px 24px; max-width: 1600px; margin: 0 auto;
+    max-width: 1400px; margin: 0 auto;
+  }
+
+  /* ── KPI CARDS ──────────────────────────────────────────────────────────── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 10px 10px 0 0; }
+  .kpi-card.total::before  { background: var(--yellow); }
+  .kpi-card.camion::before { background: var(--camion-color); }
+  .kpi-card.camioneta::before { background: var(--camioneta-color); }
+  .kpi-card.interior::before  { background: var(--interior-color); }
+  .kpi-card.retiro::before    { background: var(--retiro-color); }
+  .kpi-card.interplanta::before { background: var(--interplanta-color); }
+  .kpi-card .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; font-weight: 500; }
+  .kpi-card .value { font-size: 22px; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: -.03em; font-weight: 700; letter-spacing: -.02em; }
+  .kpi-card .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi-card.total .value  { color: var(--yellow); }
+  .kpi-card.camion .value { color: var(--camion-color); }
+  .kpi-card.camioneta .value { color: var(--camioneta-color); }
+  .kpi-card.interior .value  { color: var(--interior-color); }
+  .kpi-card.retiro .value    { color: var(--retiro-color); }
+  .kpi-card.interplanta .value { color: var(--interplanta-color); }
+
+  /* ── TABS ───────────────────────────────────────────────────────────────── */
+  .tabs { display: flex; justify-content: center; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tabs-inner { display: flex; width: 100%-flex; background: var(--fb-bg); border: 1px solid var(--fb-line); border-radius: 12px; padding: 4px; gap: 3px; flex-wrap: wrap; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .tab { padding: 9px 22px; border-radius: 9px; cursor: pointer; color: var(--fb-mut); background: none; font-size: 13.5px; font-weight: 500; border: none; transition: all .15s; white-space: nowrap; font-family: 'Outfit', sans-serif;
+    flex: 1; text-align: center;
+  }
+  .tab:hover { color: var(--fb-tx); background: rgba(0,0,0,.05); }
+  .tab.active { background: var(--fb-acc); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(37,99,235,.28); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── SECTIONS ───────────────────────────────────────────────────────────── */
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+  .section-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .section-subtitle { font-size: 11px; color: var(--muted); margin-left: auto; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-camion { background: var(--camion-color); }
+  .dot-camioneta { background: var(--camioneta-color); }
+  .dot-interior { background: var(--interior-color); }
+  .dot-total { background: var(--yellow); }
+  .dot-retiro { background: var(--retiro-color); }
+  .dot-interplanta { background: var(--interplanta-color); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .chart-wrap { position: relative; height: 260px; }
+  .chart-wrap.tall { height: 300px; }
+  .chart-wrap.short { height: 210px; }
+
+  /* ── TABLES ─────────────────────────────────────────────────────────────── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 10px; border-bottom: 1px solid rgba(46,51,77,.5); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-interior   { background: rgba(168,85,247,.15); color: var(--interior-color); }
+  .badge-retiro     { background: rgba(245,158,11,.15);  color: var(--retiro-color); }
+  .badge-interplanta{ background: rgba(236,72,153,.15);  color: var(--interplanta-color); }
+  .badge-directo    { background: rgba(6,182,212,.15);   color: var(--directo-color); }
+  .badge-normal     { background: rgba(79,142,247,.15);  color: var(--camion-color); }
+
+  .tipo-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .tipo-chip { display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+  .tipo-chip .dot { width: 8px; height: 8px; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 22px 0 18px; }
+
+  .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }
+  .loading .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+  .error-box { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); border-radius: 8px; padding: 14px 16px; color: var(--red); font-size: 13px; }
+  .empty { color: var(--muted); text-align: center; padding: 30px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="brand">
+    <h1>Dashboard Costos <span>Logísticos</span></h1>
+    <div class="sub"><span class="live-dot"></span>Lustramax · Datos en tiempo real desde Google Sheets</div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="cutbar">
+  <span class="cut-lbl">Año</span>
+  <div class="seg" id="seg-year"><!-- populated by JS --></div>
+
+  <span class="cut-lbl">Período</span>
+  <div class="seg" id="seg-month">
+    <button onclick="setMonth(0,this)">Todo</button>
+    <button onclick="setMonth(1,this)">Ene</button>
+    <button onclick="setMonth(2,this)">Feb</button>
+    <button onclick="setMonth(3,this)">Mar</button>
+    <button onclick="setMonth(4,this)">Abr</button>
+    <button onclick="setMonth(5,this)">May</button>
+    <button onclick="setMonth(6,this)">Jun</button>
+    <button onclick="setMonth(7,this)">Jul</button>
+    <button onclick="setMonth(8,this)">Ago</button>
+    <button onclick="setMonth(9,this)">Sep</button>
+    <button onclick="setMonth(10,this)">Oct</button>
+    <button onclick="setMonth(11,this)">Nov</button>
+    <button onclick="setMonth(12,this)">Dic</button>
+  </div>
+
+
+
+
+
+
+  </div>
+
+  <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
+    <span id="refresh-icon">↻</span> Actualizar datos
+  </button>
+  <span class="refresh-status" id="last-refresh"></span>
+</div>
+
+<!-- APP -->
+<div class="main" id="app">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div>Cargando datos desde Google Sheets...</div>
+  </div>
+</div>
+
+<script>
+const SHEET1_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTi7MdEChz7JN_PfbbGv1mlsUu7wXrMfZ6dxRXCaCCMcXiF1oPBsl-4g2x-m2PP4UsARtjGe0kr3vyR/pub?gid=0&single=true&output=csv';
+const SHEET2_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLiLJDwbff3CnL97fzpugm-PjPwlZeG-RLF3HiNIETieVE_ulVEAXbqK-6Ay4ksVrWw6btTDS-5S7G/pub?gid=12332453&single=true&output=csv';
+
+const MESES      = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+let allLocal    = [];
+let allInterior = [];
+let charts      = {};
+
+// ── ACTIVE FILTER STATE ───────────────────────────────────────────────────────
+let activeYear  = new Date().getFullYear();
+let activeMonth = new Date().getMonth() + 1;   // 1-12; 0 = todo el año
+
+// ── FILTER SETTERS ────────────────────────────────────────────────────────────
+function setYear(y, el) {
+  activeYear = y;
+  document.querySelectorAll('#seg-year button').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  applyFilters();
+}
+function setMonth(m, el) {
+  activeMonth = m;
+  document.querySelectorAll('#seg-month button').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  applyFilters();
+}
+
+// ── TRIP CLASSIFIER ───────────────────────────────────────────────────────────
+function classifyTipo(obs, reparto) {
+  const s = (obs + ' ' + reparto).toUpperCase();
+  if (s.includes('RETIRO'))                             return 'retiro';
+  if (obs.toUpperCase().includes('INTERPLANTA') || reparto.toUpperCase().includes('INTERPLANTA')) return 'interplanta';
+  if (s.includes('DIRECTO'))                            return 'directo';
+  return 'normal';
+}
+
+// ── CSV PARSER ────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = parseCSVRow(lines[0]).map(h => h.trim().toUpperCase());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVRow(lines[i]);
+    if (!vals || vals.length < 2) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = vals[idx] ? vals[idx].trim() : ''; });
+    rows.push(obj);
+  }
+  return rows;
+}
+function parseCSVRow(line) {
+  const result = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+    else if (c===',' && !inQ) { result.push(cur); cur=''; }
+    else cur += c;
+  }
+  result.push(cur); return result;
+}
+function parseCost(str) {
+  if (!str) return 0;
+  const n = parseFloat(str.replace(/\$/g,'').replace(/\s/g,'').replace(/\./g,'').replace(/,/g,'.'));
+  return isNaN(n) ? 0 : n;
+}
+function parseDate(str) {
+  if (!str) return null;
+  const p = str.split('/'); if (p.length!==3) return null;
+  let [d,m,y] = p.map(Number); if (y<100) y+=2000;
+  return new Date(y, m-1, d);
+}
+function fmt(n) {
+  if (n===0) return '$0';
+  if (n>=1e9) return '$'+(n/1e9).toFixed(2)+'B';
+  if (n>=1e6) return '$'+(n/1e6).toFixed(2)+'M';
+  if (n>=1e3) return '$'+(n/1e3).toFixed(0)+'K';
+  return '$'+n.toLocaleString('es-AR');
+}
+function fmtFull(n) { return '$'+Math.round(n).toLocaleString('es-AR'); }
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────────
+
+function fetchWithTimeout(url, ms=15000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal })
+    .then(r => { clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .catch(e => { clearTimeout(timer); throw new Error(e.name==='AbortError' ? 'Timeout (15s): verificá que las hojas estén publicadas.' : e.message); });
+}
+async function loadData() {
+  const btn  = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  btn.disabled = true; icon.classList.add('spin');
+  try {
+    const [r1, r2] = await Promise.all([
+      fetchWithTimeout(SHEET1_URL),
+      fetchWithTimeout(SHEET2_URL)
+    ]);
+
+    allLocal = parseCSV(r1)
+      .filter(r => r.FECHA && parseDate(r.FECHA))
+      .map(r => ({
+        date: parseDate(r.FECHA),
+        empresa: r.EMPRESA||'', chofer: r.CHOFER||'',
+        vehiculo: (r.VEHICULO||'CAMION').toUpperCase(),
+        observaciones: r.OBSERVACIONES||'', reparto: r.REPARTO||'',
+        tipo: classifyTipo(r.OBSERVACIONES||'', r.REPARTO||''),
+        cost: parseCost(r.COSTO)
+      }));
+
+    allInterior = parseCSV(r2)
+      .filter(r => r.FECHA && parseDate(r.FECHA))
+      .map(r => ({
+        date: parseDate(r.FECHA),
+        empresa: r.EMPRESA||'', chofer: r.CHOFER||'',
+        destino: r.DESTINO||'', clientes: r.CLIENTES||'',
+        reparto: r.REPARTO||'',
+        cost: parseCost(r.COSTO)
+      }));
+
+    // Build year buttons
+    const years = [...new Set([...allLocal,...allInterior].filter(r=>r.date).map(r=>r.date.getFullYear()))].sort((a,b)=>b-a);
+    const curYear = new Date().getFullYear();
+    if (!years.includes(curYear)) activeYear = years[0] || curYear;
+
+    document.getElementById('seg-year').innerHTML =
+      years.map(y => `<button onclick="setYear(${y},this)" ${y===activeYear?'class="on"':''}>${y}</button>`).join('');
+
+    // Activate current month button
+    const monthBtns = document.querySelectorAll('#seg-month button');
+    monthBtns.forEach(b => b.classList.remove('on'));
+    monthBtns[activeMonth].classList.add('on'); // index 0=Todo, 1=Ene ... 12=Dic
+
+    document.getElementById('last-refresh').textContent =
+      'Auto-actualizado: ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+    applyFilters();
+  } catch(e) {
+    document.getElementById('app').innerHTML =
+      `<div class="error-box">⚠️ Error al cargar los datos: ${e.message}<br><small>Verificá que las hojas sean públicas.</small></div>`;
+  } finally {
+    btn.disabled = false; icon.classList.remove('spin');
+  }
+}
+
+// ── FILTER HELPERS ────────────────────────────────────────────────────────────
+function filterRows(rows, year, month) {
+  return rows.filter(r => {
+    if (!r.date) return false;
+    if (r.date.getFullYear() !== year) return false;
+    if (month && r.date.getMonth()+1 !== month) return false;
+    return true;
+  });
+}
+function filterYear(rows, year) {
+  return rows.filter(r => r.date && r.date.getFullYear() === year);
+}
+
+// ── GROUPING ──────────────────────────────────────────────────────────────────
+function getMonday(date) {
+  const d = new Date(date); d.setHours(0,0,0,0);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day===0 ? 6 : day-1));
+  return d;
+}
+function weekLabel(date) {
+  const m = getMonday(date);
+  return m.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+}
+function monthlyTotals(rows, year) {
+  const t = new Array(12).fill(0);
+  rows.filter(r => r.date && r.date.getFullYear()===year).forEach(r => { t[r.date.getMonth()]+=r.cost; });
+  return t;
+}
+function weeklyTotals(rows, year) {
+  const map = {};
+  rows.filter(r => r.date && r.date.getFullYear()===year).forEach(r => {
+    const m = getMonday(r.date), key = m.getTime();
+    if (!map[key]) map[key] = { label:weekLabel(r.date), cost:0, ts:key };
+    map[key].cost += r.cost;
+  });
+  const s = Object.values(map).sort((a,b)=>a.ts-b.ts);
+  return { labels:s.map(e=>e.label), data:s.map(e=>e.cost) };
+}
+function dailyTotals(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const key = r.date.getTime();
+    const lbl = r.date.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+    if (!map[key]) map[key] = { label:lbl, cost:0, ts:key };
+    map[key].cost += r.cost;
+  });
+  const s = Object.values(map).sort((a,b)=>a.ts-b.ts);
+  return { labels:s.map(e=>e.label), data:s.map(e=>e.cost) };
+}
+function groupByView(rows, view) {
+  const map = {};
+  rows.forEach(r => {
+    let key, sk;
+    if (view==='daily') { key=r.date.toLocaleDateString('es-AR'); sk=r.date.getTime(); }
+    else if (view==='weekly') { const m=getMonday(r.date); key=weekLabel(r.date); sk=m.getTime(); }
+    else { key=MESES[r.date.getMonth()]+' '+r.date.getFullYear(); sk=r.date.getFullYear()*100+r.date.getMonth(); }
+    if (!map[key]) map[key]={key,cost:0,count:0,sk};
+    map[key].cost+=r.cost; map[key].count++;
+  });
+  return Object.values(map).sort((a,b)=>a.sk-b.sk);
+}
+
+// ── CHART HELPERS ─────────────────────────────────────────────────────────────
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function makeBar(id, labels, datasets, stacked=false) {
+  destroyChart(id);
+  const ctx = document.getElementById(id); if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color:'#8892b0', font:{size:11} } },
+        tooltip: { callbacks: { label: c => ' '+fmtFull(c.raw) } }
+      },
+      scales: {
+        x: { stacked, ticks:{color:'#8892b0',font:{size:10},maxRotation:45}, grid:{color:'rgba(46,51,77,.5)'} },
+        y: { stacked, ticks:{color:'#8892b0',font:{size:11},callback:v=>fmt(v)}, grid:{color:'rgba(46,51,77,.5)'} }
+      }
+    }
+  });
+}
+
+// ── TABLE HELPERS ─────────────────────────────────────────────────────────────
+function periodTable(rows, view) {
+  const g = groupByView(rows, view);
+  if (!g.length) return '<div class="empty">Sin datos para el período seleccionado</div>';
+  const total = g.reduce((s,r)=>s+r.cost,0);
+  const hdr = view==='daily'?'Fecha':view==='weekly'?'Semana (desde lunes)':'Mes';
+  let html=`<div class="tbl-wrap"><table><tr><th>${hdr}</th><th class="num">Costo Total</th><th class="num">Registros</th><th class="num">Promedio</th></tr>`;
+  g.slice(-80).forEach(r=>{
+    html+=`<tr><td>${r.key}</td><td class="num">${fmtFull(r.cost)}</td><td class="num">${r.count}</td><td class="num">${r.count?fmtFull(r.cost/r.count):'-'}</td></tr>`;
+  });
+  html+=`<tr style="font-weight:600;border-top:1px solid var(--border)"><td>TOTAL</td><td class="num">${fmtFull(total)}</td><td class="num">${g.reduce((s,r)=>s+r.count,0)}</td><td class="num">-</td></tr></table></div>`;
+  return html;
+}
+function empresaTable(rows) {
+  const map={};
+  rows.forEach(r=>{ if(!map[r.empresa]) map[r.empresa]={cost:0,count:0}; map[r.empresa].cost+=r.cost; map[r.empresa].count++; });
+  const e=Object.entries(map).sort((a,b)=>b[1].cost-a[1].cost);
+  if (!e.length) return '<div class="empty">Sin datos</div>';
+  const total=e.reduce((s,[,v])=>s+v.cost,0);
+  let html=`<div class="tbl-wrap"><table><tr><th>Empresa</th><th class="num">Costo</th><th class="num">Viajes</th><th class="num">%</th></tr>`;
+  e.forEach(([emp,v])=>{ html+=`<tr><td>${emp||'—'}</td><td class="num">${fmtFull(v.cost)}</td><td class="num">${v.count}</td><td class="num">${total?(v.cost/total*100).toFixed(1):0}%</td></tr>`; });
+  return html+'</table></div>';
+}
+function destinoTable(rows) {
+  const map={};
+  rows.forEach(r=>{ const k=r.destino||'(sin destino)'; if(!map[k]) map[k]={cost:0,count:0}; map[k].cost+=r.cost; map[k].count++; });
+  const e=Object.entries(map).sort((a,b)=>b[1].cost-a[1].cost);
+  if (!e.length) return '<div class="empty">Sin datos</div>';
+  let html=`<div class="tbl-wrap"><table><tr><th>Destino</th><th class="num">Costo Total</th><th class="num">Viajes</th><th class="num">Promedio</th></tr>`;
+  e.forEach(([d,v])=>{ html+=`<tr><td>${d}</td><td class="num">${fmtFull(v.cost)}</td><td class="num">${v.count}</td><td class="num">${v.count?fmtFull(v.cost/v.count):'-'}</td></tr>`; });
+  return html+'</table></div>';
+}
+function tipoBreakdownTable(rows) {
+  const map={retiro:{cost:0,count:0},interplanta:{cost:0,count:0},directo:{cost:0,count:0},normal:{cost:0,count:0}};
+  rows.forEach(r=>{ if(map[r.tipo]){map[r.tipo].cost+=r.cost;map[r.tipo].count++;} });
+  const total=Object.values(map).reduce((s,v)=>s+v.cost,0);
+  const lbl={retiro:'🔄 Retiros',interplanta:'🏭 Interplanta',directo:'➡️ Directos',normal:'📦 Reparto Normal'};
+  let html=`<div class="tbl-wrap"><table><tr><th>Tipo</th><th class="num">Costo</th><th class="num">Viajes</th><th class="num">%</th></tr>`;
+  ['retiro','interplanta','directo','normal'].forEach(t=>{
+    const v=map[t]; if(!v.count) return;
+    html+=`<tr><td>${lbl[t]}</td><td class="num">${fmtFull(v.cost)}</td><td class="num">${v.count}</td><td class="num">${total?(v.cost/total*100).toFixed(1):0}%</td></tr>`;
+  });
+  return html+`<tr style="font-weight:600;border-top:1px solid var(--border)"><td>TOTAL</td><td class="num">${fmtFull(total)}</td><td class="num">${rows.length}</td><td class="num">100%</td></tr></table></div>`;
+}
+function localDetailTable(rows) {
+  if (!rows.length) return '<div class="empty">Sin registros</div>';
+  const sorted=[...rows].sort((a,b)=>b.date-a.date);
+  const bc={retiro:'badge-retiro',interplanta:'badge-interplanta',directo:'badge-directo',normal:'badge-normal'};
+  const tl={retiro:'Retiro',interplanta:'Interplanta',directo:'Directo',normal:'Normal'};
+  let html=`<div class="tbl-wrap"><table><tr><th>Fecha</th><th>Empresa</th><th>Chofer</th><th>Tipo</th><th>Observaciones</th><th class="num">Costo</th></tr>`;
+  sorted.forEach(r=>{
+    html+=`<tr><td>${r.date.toLocaleDateString('es-AR')}</td><td>${r.empresa}</td><td>${r.chofer}</td><td><span class="badge ${bc[r.tipo]||'badge-normal'}">${tl[r.tipo]||r.tipo}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.observaciones}">${r.observaciones||'—'}</td><td class="num">${r.cost?fmtFull(r.cost):'—'}</td></tr>`;
+  });
+  return html+'</table></div>';
+}
+function viajesTable(rows) {
+  if (!rows.length) return '<div class="empty">Sin viajes para el período</div>';
+  const sorted=[...rows].sort((a,b)=>b.date-a.date);
+  let html=`<div class="tbl-wrap"><table><tr><th>Fecha</th><th>Empresa</th><th>Chofer</th><th>Destino</th><th>Clientes</th><th class="num">Costo</th></tr>`;
+  sorted.slice(0,100).forEach(r=>{
+    html+=`<tr><td>${r.date.toLocaleDateString('es-AR')}</td><td>${r.empresa}</td><td>${r.chofer}</td><td><span class="badge badge-interior">${r.destino||'—'}</span></td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.clientes}">${r.clientes||'—'}</td><td class="num">${r.cost?fmtFull(r.cost):'—'}</td></tr>`;
+  });
+  if (sorted.length>100) html+=`<tr><td colspan="6" style="text-align:center;color:var(--muted);font-style:italic">... y ${sorted.length-100} más</td></tr>`;
+  return html+'</table></div>';
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function applyFilters() {
+  const year  = activeYear;
+  const month = activeMonth;  // 0 = all year
+  const view  = 'monthly';
+  if (!year || (!allLocal.length && !allInterior.length)) return;
+
+  // ── Filtered rows (respond to month selection) ──
+  const localFilt = filterRows(allLocal,    year, month);
+  const intFilt   = filterRows(allInterior, year, month);
+
+  // ── Full-year rows (for all annual/monthly/weekly charts — NEVER filtered by month) ──
+  const localYear = filterYear(allLocal,    year);
+  const intYear   = filterYear(allInterior, year);
+
+  // Vehicle split
+  const hasVan = allLocal.some(r => r.vehiculo==='CAMIONETA');
+  const camFilt   = localFilt.filter(r => r.vehiculo!=='CAMIONETA');
+  const vanFilt   = localFilt.filter(r => r.vehiculo==='CAMIONETA');
+  const camYear   = localYear.filter(r => r.vehiculo!=='CAMIONETA');
+  const vanYear   = localYear.filter(r => r.vehiculo==='CAMIONETA');
+
+  // Tipo split
+  const retiroFilt      = localFilt.filter(r => r.tipo==='retiro');
+  const interplantaFilt = localFilt.filter(r => r.tipo==='interplanta');
+  const directoFilt     = localFilt.filter(r => r.tipo==='directo');
+  const retiroYear      = localYear.filter(r => r.tipo==='retiro');
+  const interplantaYear = localYear.filter(r => r.tipo==='interplanta');
+
+  // KPIs (filtered period)
+  const totCam = camFilt.reduce((s,r)=>s+r.cost,0);
+  const totVan = vanFilt.reduce((s,r)=>s+r.cost,0);
+  const totInt = intFilt.reduce((s,r)=>s+r.cost,0);
+  const totRet = retiroFilt.reduce((s,r)=>s+r.cost,0);
+  const totIpl = interplantaFilt.reduce((s,r)=>s+r.cost,0);
+  const totGen = totCam + totVan + totInt;
+
+  // ── ANNUAL CHART DATA — always full year regardless of month filter ──
+  const mCam = monthlyTotals(camYear,  year);
+  const mVan = monthlyTotals(vanYear,  year);
+  const mInt = monthlyTotals(intYear,  year);
+  const mRet = monthlyTotals(retiroYear, year);
+  const mIpl = monthlyTotals(interplantaYear, year);
+
+  const wAll = weeklyTotals([...localYear,...intYear], year);
+  const wRet = weeklyTotals(retiroYear, year);
+  const wIpl = weeklyTotals(interplantaYear, year);
+
+  // ── PERIOD CHART DATA — filtered by month (daily charts) ──
+  const allPeriod = [...localFilt,...intFilt];
+  const dAll = dailyTotals(allPeriod);
+  const dRet = dailyTotals(retiroFilt);
+  const dIpl = dailyTotals(interplantaFilt);
+
+  const periodLabel = month ? `${MESES_FULL[month-1]} ${year}` : `Año ${year}`;
+  const viewLbl = view==='daily'?'Diario':view==='weekly'?'Semanal':'Mensual';
+
+  document.getElementById('app').innerHTML = `
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card total">
+      <div class="label">Total General · ${periodLabel}</div>
+      <div class="value">${fmt(totGen)}</div>
+      <div class="sub">${fmtFull(totGen)}</div>
+    </div>
+    <div class="kpi-card camion">
+      <div class="label">Camiones Locales</div>
+      <div class="value">${fmt(totCam)}</div>
+      <div class="sub">${camFilt.length} registros · ${totGen?(totCam/totGen*100).toFixed(1):0}%</div>
+    </div>
+    <div class="kpi-card camioneta">
+      <div class="label">Camionetas</div>
+      <div class="value">${hasVan?fmt(totVan):'—'}</div>
+      <div class="sub">${hasVan?vanFilt.length+' registros':'Sin datos'}</div>
+    </div>
+    <div class="kpi-card interior">
+      <div class="label">Viajes Interior</div>
+      <div class="value">${fmt(totInt)}</div>
+      <div class="sub">${intFilt.length} viajes · ${totGen?(totInt/totGen*100).toFixed(1):0}%</div>
+    </div>
+    <div class="kpi-card retiro">
+      <div class="label">🔄 Retiros</div>
+      <div class="value">${fmt(totRet)}</div>
+      <div class="sub">${retiroFilt.length} registros</div>
+    </div>
+    <div class="kpi-card interplanta">
+      <div class="label">🏭 Interplanta</div>
+      <div class="value">${fmt(totIpl)}</div>
+      <div class="sub">${interplantaFilt.length} registros</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tabs-inner">
+      <div class="tab active" onclick="switchTab('resumen',this)">Resumen Anual</div>
+      <div class="tab" onclick="switchTab('camiones',this)">Camiones Locales</div>
+      <div class="tab" onclick="switchTab('camionetas',this)">Camionetas</div>
+      <div class="tab" onclick="switchTab('interior',this)">Viajes Interior</div>
+      <div class="tab" onclick="switchTab('tipos',this)">Retiros · Interplanta</div>
+    </div>
+  </div>
+
+  <!-- ══ RESUMEN ══════════════════════════════════════════════════════════════ -->
+  <div id="pane-resumen" class="tab-pane active">
+
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-total"></span>Evolución Mensual ${year} — Todos los Costos
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-total-monthly"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot dot-retiro"></span>Desglose por Tipo de Operación — ${periodLabel}</div>
+      <div class="tipo-legend">
+        <div class="tipo-chip"><span class="dot dot-retiro"></span>Retiros</div>
+        <div class="tipo-chip"><span class="dot dot-interplanta"></span>Interplanta</div>
+        <div class="tipo-chip"><span class="dot" style="background:var(--directo-color)"></span>Directos</div>
+        <div class="tipo-chip"><span class="dot dot-camion"></span>Reparto Normal</div>
+      </div>
+      ${tipoBreakdownTable(localFilt)}
+    </div>
+
+    <div class="grid-2">
+      <div class="section">
+        <div class="section-title"><span class="dot dot-camion"></span>Por Empresa — ${periodLabel}</div>
+        ${empresaTable(localFilt)}
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="dot dot-interior"></span>Destinos Interior — ${periodLabel}</div>
+        ${destinoTable(intFilt)}
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-total"></span>Evolución Semanal ${year} — Todos los Costos
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-total-weekly"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-total"></span>Evolución Diaria — Todos los Costos
+        <span class="section-subtitle">${periodLabel}</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-total-daily"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-retiro"></span>🔄 Retiros — Evolución Mensual ${year}
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-retiro-monthly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-retiro"></span>🔄 Retiros — Evolución Semanal ${year}
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-retiro-weekly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-retiro"></span>🔄 Retiros — Evolución Diaria
+        <span class="section-subtitle">${periodLabel}</span>
+      </div>
+      <div class="chart-wrap short"><canvas id="chart-retiro-daily"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-interplanta"></span>🏭 Interplanta — Evolución Mensual ${year}
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-ipl-monthly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-interplanta"></span>🏭 Interplanta — Evolución Semanal ${year}
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-ipl-weekly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-interplanta"></span>🏭 Interplanta — Evolución Diaria
+        <span class="section-subtitle">${periodLabel}</span>
+      </div>
+      <div class="chart-wrap short"><canvas id="chart-ipl-daily"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ CAMIONES ════════════════════════════════════════════════════════════ -->
+  <div id="pane-camiones" class="tab-pane">
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-camion"></span>Evolución Mensual Camiones · ${year}
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-camiones-monthly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-camion"></span>Detalle ${viewLbl} — ${periodLabel}</div>
+      ${periodTable(camFilt, view)}
+    </div>
+    <div class="grid-2">
+      <div class="section">
+        <div class="section-title"><span class="dot dot-camion"></span>Por Empresa</div>
+        ${empresaTable(camFilt)}
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="dot dot-camion"></span>Tipos de Operación</div>
+        ${tipoBreakdownTable(camFilt)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-camion"></span>Registro — ${periodLabel}</div>
+      ${localDetailTable(camFilt)}
+    </div>
+  </div>
+
+  <!-- ══ CAMIONETAS ══════════════════════════════════════════════════════════ -->
+  <div id="pane-camionetas" class="tab-pane">
+    ${hasVan ? `
+    <div class="section">
+      <div class="section-title"><span class="dot dot-camioneta"></span>Evolución Mensual Camionetas · ${year}<span class="section-subtitle">Año completo</span></div>
+      <div class="chart-wrap"><canvas id="chart-camionetas-monthly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-camioneta"></span>Detalle ${viewLbl} — ${periodLabel}</div>
+      ${periodTable(vanFilt,view)}
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-camioneta"></span>Por Empresa</div>
+      ${empresaTable(vanFilt)}
+    </div>` : `
+    <div class="section">
+      <div class="empty" style="padding:60px">
+        <div style="font-size:40px;margin-bottom:12px">🚐</div>
+        <div style="color:var(--text);font-size:15px;margin-bottom:8px">Sin registros de camionetas</div>
+        <div>Se mostrarán cuando haya filas con VEHICULO = "CAMIONETA".</div>
+      </div>
+    </div>`}
+  </div>
+
+  <!-- ══ INTERIOR ════════════════════════════════════════════════════════════ -->
+  <div id="pane-interior" class="tab-pane">
+    <div class="section">
+      <div class="section-title">
+        <span class="dot dot-interior"></span>Evolución Mensual Viajes Interior · ${year}
+        <span class="section-subtitle">Año completo</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-interior-monthly"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-interior"></span>Detalle ${viewLbl} — ${periodLabel}</div>
+      ${periodTable(intFilt,view)}
+    </div>
+    <div class="grid-2">
+      <div class="section">
+        <div class="section-title"><span class="dot dot-interior"></span>Por Destino</div>
+        ${destinoTable(intFilt)}
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="dot dot-interior"></span>Por Empresa</div>
+        ${empresaTable(intFilt)}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-interior"></span>Registro de Viajes — ${periodLabel}</div>
+      ${viajesTable(intFilt)}
+    </div>
+  </div>
+
+  <!-- ══ TIPOS ═══════════════════════════════════════════════════════════════ -->
+  <div id="pane-tipos" class="tab-pane">
+    <div class="section">
+      <div class="section-title"><span class="dot dot-retiro"></span>🔄 Retiros · Detalle ${viewLbl} — ${periodLabel}</div>
+      ${periodTable(retiroFilt,view)}
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-retiro"></span>🔄 Retiros · Registro — ${periodLabel}</div>
+      ${localDetailTable(retiroFilt)}
+    </div>
+    <hr class="divider">
+    <div class="section">
+      <div class="section-title"><span class="dot dot-interplanta"></span>🏭 Interplanta · Detalle ${viewLbl} — ${periodLabel}</div>
+      ${periodTable(interplantaFilt,view)}
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot dot-interplanta"></span>🏭 Interplanta · Registro — ${periodLabel}</div>
+      ${localDetailTable(interplantaFilt)}
+    </div>
+    <hr class="divider">
+    <div class="section">
+      <div class="section-title"><span class="dot" style="background:var(--directo-color)"></span>➡️ Directos · Registro — ${periodLabel}</div>
+      ${localDetailTable(directoFilt)}
+    </div>
+  </div>
+  `;
+
+  // ── DRAW CHARTS ────────────────────────────────────────────────────────────
+
+  // Resumen — annual charts (always full year)
+  makeBar('chart-total-monthly', MESES, [
+    { label:'Camiones',   data:mCam, backgroundColor:'rgba(79,142,247,.8)',  borderRadius:4 },
+    { label:'Camionetas', data:mVan, backgroundColor:'rgba(34,197,94,.8)',   borderRadius:4 },
+    { label:'Interior',   data:mInt, backgroundColor:'rgba(168,85,247,.8)',  borderRadius:4 },
+  ], true);
+  makeBar('chart-total-weekly', wAll.labels, [
+    { label:'Todos los costos', data:wAll.data, backgroundColor:'rgba(79,142,247,.7)', borderRadius:3 }
+  ]);
+  // Daily — filtered period
+  makeBar('chart-total-daily', dAll.labels, [
+    { label:'Costo diario', data:dAll.data, backgroundColor:'rgba(245,158,11,.75)', borderRadius:3 }
+  ]);
+
+  // Retiros — annual charts
+  makeBar('chart-retiro-monthly', MESES, [{ label:'Retiros', data:mRet, backgroundColor:'rgba(245,158,11,.8)', borderRadius:4 }]);
+  makeBar('chart-retiro-weekly',  wRet.labels, [{ label:'Retiros', data:wRet.data, backgroundColor:'rgba(245,158,11,.7)', borderRadius:3 }]);
+  makeBar('chart-retiro-daily',   dRet.labels, [{ label:'Retiros', data:dRet.data, backgroundColor:'rgba(245,158,11,.65)', borderRadius:3 }]);
+
+  // Interplanta — annual charts
+  makeBar('chart-ipl-monthly', MESES, [{ label:'Interplanta', data:mIpl, backgroundColor:'rgba(236,72,153,.8)', borderRadius:4 }]);
+  makeBar('chart-ipl-weekly',  wIpl.labels, [{ label:'Interplanta', data:wIpl.data, backgroundColor:'rgba(236,72,153,.7)', borderRadius:3 }]);
+  makeBar('chart-ipl-daily',   dIpl.labels, [{ label:'Interplanta', data:dIpl.data, backgroundColor:'rgba(236,72,153,.65)', borderRadius:3 }]);
+
+  // Camiones — annual
+  makeBar('chart-camiones-monthly', MESES, [{ label:'Camiones', data:mCam, backgroundColor:'rgba(79,142,247,.8)', borderRadius:4 }]);
+
+  // Camionetas
+  if (hasVan) makeBar('chart-camionetas-monthly', MESES, [{ label:'Camionetas', data:mVan, backgroundColor:'rgba(34,197,94,.8)', borderRadius:4 }]);
+
+  // Interior — annual
+  makeBar('chart-interior-monthly', MESES, [{ label:'Interior', data:mInt, backgroundColor:'rgba(168,85,247,.8)', borderRadius:4 }]);
+}
+
+// ── TAB SWITCHER ──────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-'+name).classList.add('active');
+}
+
+// ── INIT — load immediately on open ──────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
