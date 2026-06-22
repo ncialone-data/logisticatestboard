@@ -25,7 +25,7 @@
     --camion-color: #4f8ef7;
     --camioneta-color: #22c55e;
     --interior-color: #a855f7;
-    --retiro-color: #f59e0b;
+    --retiro-color: #f97316;
     --interplanta-color: #ec4899;
     --directo-color: #06b6d4;
     /* Filter bar (light) */
@@ -850,13 +850,13 @@ function applyFilters() {
   ]);
   // Daily — filtered period
   makeBar('chart-total-daily', dAll.labels, [
-    { label:'Costo diario', data:dAll.data, backgroundColor:'rgba(245,158,11,.75)', borderRadius:3 }
+    { label:'Costo diario', data:dAll.data, backgroundColor:'rgba(251,191,36,.8)', borderRadius:3 }
   ]);
 
   // Retiros — annual charts
-  makeBar('chart-retiro-monthly', MESES, [{ label:'Retiros', data:mRet, backgroundColor:'rgba(245,158,11,.8)', borderRadius:4 }]);
-  makeBar('chart-retiro-weekly',  wRet.labels, [{ label:'Retiros', data:wRet.data, backgroundColor:'rgba(245,158,11,.7)', borderRadius:3 }]);
-  makeBar('chart-retiro-daily',   dRet.labels, [{ label:'Retiros', data:dRet.data, backgroundColor:'rgba(245,158,11,.65)', borderRadius:3 }]);
+  makeBar('chart-retiro-monthly', MESES, [{ label:'Retiros', data:mRet, backgroundColor:'rgba(249,115,22,.85)', borderRadius:4 }]);
+  makeBar('chart-retiro-weekly',  wRet.labels, [{ label:'Retiros', data:wRet.data, backgroundColor:'rgba(249,115,22,.75)', borderRadius:3 }]);
+  makeBar('chart-retiro-daily',   dRet.labels, [{ label:'Retiros', data:dRet.data, backgroundColor:'rgba(249,115,22,.7)', borderRadius:3 }]);
 
   // Interplanta — annual charts
   makeBar('chart-ipl-monthly', MESES, [{ label:'Interplanta', data:mIpl, backgroundColor:'rgba(236,72,153,.8)', borderRadius:4 }]);
